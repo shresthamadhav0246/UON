@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <!-- <link rel="stylesheet" href="styles.css"> -->
+    <title>NHS Data Sync</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+</head>
+<body>
+    <header>
+        <h1>NHS Data Sync</h1>
+        <p>Your solution for real-time patient data synchronization</p>
+    </header>
+
+    <main>
+
+        <section class="proposed-solution">
+            <h2>Proposed Solution</h2>
+            <p>
+                Our solution involves real-time synchronization with the NHS FHIR API,
+                ensuring up-to-date patient records. The system compares local records with
+                the NHS API on each page load. Inconsistencies trigger a "Local - NHS Data Sync" page,
+                offering options to Keep or Overwrite data based on user preferences.
+            </p>
+        </section>
+        <section class="fromAPI">
+            <div class="m">
+                <h1 class="mt-5">Patient List from API</h1>
+            
+                <table class="table table-bordered" id="apiData">
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Gender</th>
+                        <th>Birth Date</th>
+                        <th>Address</th>
+                        <th>Phone</th>
+                    </tr>
+                    
+                    {% if data.error %}
+                        <tr>
+                            <td colspan="6">{{ data.error }}</td>
+                        </tr>
+                    {% else %}
+                        {% for entry in data.entry %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ entry.resource.name.0.text }}</td>
+                                <td>{{ entry.resource.gender }}</td>
+                                <td>{{ entry.resource.birthDate }}</td>
+                                <td>{{ entry.resource.address.0.line.0 }}, {{ entry.resource.address.0.city }}, {{ entry.resource.address.0.district }}, {{ entry.resource.address.0.postalCode }}</td>
+                                <td>{{ entry.resource.telecom.0.value }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    
+                </table>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end;float: right; font-size: 34px; color: green;"><div class="btn-group" role="group" aria-label="second group" disabled>
+                <button type="button" class="btn btn-secondary" id = 'checkSim'><i class="bi bi-arrow-clockwise"></i></button>              </div>
+              </div>
+
+            
+            </section><section class="fromDB">
+            <div>
+                <h1 class="mt-5">Patient List from DB</h1>
+                <table class="table table-bordered dbData" id="dbData">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Gender</th>
+                            <th>Birth Date</th>
+                            <th>Address</th>
+                            <th>Phone</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for patient in patients %}
+                        <tr>
+                            <td id="dbid">{{ patient.id }}</td>
+                            <td id="dbname">{{ patient.name }}</td>
+                            <td id="dbgender">{{ patient.gender }}</td>
+                            <td id="dbdob">{{ patient.birth_date }}</td>
+                            <td id="dbadd">{{ patient.address }}</td>
+                            <td id="dbphone">{{ patient.phone }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+            </div>
+             
+        </section>
+        <div style="display: flex; justify-content: flex-end;float: right; font-size: 34px; color: green;"><div class="btn-group" role="group" aria-label="second group" disabled>
+            <button type="button" class="btn btn-secondary"><a href="http://127.0.0.1:8000/admin/access/patient/1/change/"target="_blank"><i class="bi bi-database-add"></i></a></button>
+            </div>
+          </div>
+
+        <div class="btn-group" role="group" aria-label="first group" id="btnkeep">
+            <button type="button" class="btn btn-secondary">Keep</button>
+        </div>
+            <div class="btn-group" role="group" aria-label="second group" id ="btnoverwrite">
+                <button type="button" class="btn btn-secondary">Overwrite</button>              </div>
+              
+    </main>
+
+    <footer>
+        <p>&copy; 2023 NHS Data Sync</p>
+    </footer>
+</body>
+
+</html>
+
+<script>
+    // Function to check similarity and update table cells
+function checkSimilarity() {
+    fetch('/dashboard/checkSim/')
+    .then(response => response.json())
+    .then(data => {
+        console.log(data);
+        // Check if any data is true
+        if (data.address_diff[0]|| data.dob_diff[0]|| data.gender_diff[0] || data.phone_diff[0]) { 
+
+                if (data.address_diff[0]) {
+                    // select dbadress id
+                    var dbadd = document.getElementById("dbadd");
+                    dbadd.style.backgroundColor = 'red';
+                    dbadd.style.color = 'wheat';
+                }
+                if (data.dob_diff[0]) {
+                    var dbdob = document.getElementById("dbdob");
+                    dbdob.style.backgroundColor = 'red';
+                    dbdob.style.color = 'wheat';
+                }
+                if (data.gender_diff[0]) {
+                    var dbgender = document.getElementById("dbgender");
+                    dbgender.style.backgroundColor = 'red';
+                    dbgender.style.color = 'wheat';
+                }
+                if (data.phone_diff[0]) {
+                    var dbphone = document.getElementById("dbphone");
+                    dbphone.style.backgroundColor = 'red';
+                    dbphone.style.color = 'wheat';
+                }
+                // Enable the buttons
+                //document.querySelector('.btn-group[aria-label="first group"]').disabled = false;
+                //document.querySelector('.btn-group[aria-label="second group"]').disabled = false;
+        } 
+        else {
+            // No differences found
+            alert("No differences found");
+        }     
+    });
+}
+function keep(){
+    fetch('/dashboard/checkSim/')
+    .then(response => response.json())
+    .then(data => {
+        console.log(data.address_diff[0]);
+        // Check if any data is true
+        if (data.address_diff[0] === true || data.dob_diff[0] === true || data.gender_diff[0] === true || data.phone_diff[0] === true) {            if (data.address_diff) {
+                // select dbadress id
+                var dbadd = document.getElementById("dbadd");
+                dbadd.style.backgroundColor = '';
+                dbadd.style.color = '';
+            }
+            if (data.dob_diff[0]) {
+                var dbdob = document.getElementById("dbdob");
+                dbdob.style.backgroundColor = '';
+                dbdob.style.color = '';
+            }
+            if (data.gender_diff[0]) {
+                var dbgender = document.getElementById("dbgender");
+                dbgender.style.backgroundColor = '';
+                dbgender.style.color = '';
+            }
+            if (data.phone_diff[0]) {
+                var dbphone = document.getElementById("dbphone");
+                dbphone.style.backgroundColor = '';
+                dbphone.style.color = '';
+            }
+        }
+        else {
+            // No differences found
+            alert("Its same already");
+        }
+    });
+}
+function Overwrite(data) {
+    // Fetch the checkSim data
+    fetch('/dashboard/checkSim/')
+        .then(response => response.json())
+        .then(checkSimData => {
+            console.log(checkSimData);
+
+            // Check for differences in the data
+            if (checkSimData.address_diff[0] || checkSimData.dob_diff[0] || checkSimData.gender_diff[0] || checkSimData.phone_diff[0]) {
+                // Get CSRF token from cookies
+
+                // Only proceed if CSRF token is available
+              
+                    // Send a POST request to the /dashboard/register/ URL with the CSRF token in headers
+                    fetch('/dashboard/register/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data) // Assuming 'data' needs to be sent; adjust as necessary
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        console.log(result);
+                        if (result.status === 'success') {
+                            alert('Data updated successfully, please refresh the page');
+                        } else {
+                            alert('Error updating data: ' + result.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Failed to send request: ' + error.message);
+                    });
+               
+            }
+            else {
+                // No differences found
+                alert("Nothing to add");
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to fetch checkSim data: ' + error.message);
+        });
+}
+
+
+
+// Attach the event listener to the button
+document.getElementById('checkSim').addEventListener('click', checkSimilarity);
+document.getElementById('btnkeep').addEventListener('click', keep);
+document.getElementById('btnoverwrite').addEventListener('click', Overwrite);
+</script>
+<style>  
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f2f2f2;
+}
+
+header {
+    background-color: #3498db;
+    color: #fff;
+    text-align: center;
+    padding: 20px 0;
+}
+
+header h1 {
+    margin: 0;
+}
+
+main {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.features, .proposed-solution {
+    margin-bottom: 20px;
+}
+
+footer {
+    text-align: center;
+    padding: 10px;
+    background-color: #3498db;
+    color: #fff;
+    position: fixed;
+    width: 100%;
+    bottom: 0;
+}
+</style>
